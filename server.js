@@ -24,6 +24,8 @@ const app = express();
 const allowedOrigins = [
   "http://192.168.5.207:3000",
   "http://192.168.4.13:3000",
+  "http://192.168.100.63:3000",
+  "http://192.168.100.63:3006",
   "http://192.168.5.207:3001", // Swagger UI embebido
   "http://localhost:3000",
   null, // Para peticiones sin origin (opcional, para pruebas locales)

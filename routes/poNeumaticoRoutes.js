@@ -216,4 +216,161 @@ router.get('/asignados/cantidad', poNeumaticoController.contarNeumaticosAsignado
  */
 router.get('/disponibles/cantidad', poNeumaticoController.contarNeumaticosDisponibles);
 
+// NUEVAS RUTAS PARA VISIBILIDAD DE ESTADOS - MÓDULO I
+
+/**
+ * @swagger
+ * /api/po-neumaticos/todos:
+ *   get:
+ *     summary: Obtener todos los neumáticos (operativos + baja definitiva + recuperados)
+ *     description: >-
+ *       Retorna una vista unificada de todos los neumáticos del sistema incluyendo:
+ *       - Neumáticos operativos (PO_NEUMATICO)
+ *       - Neumáticos en baja definitiva (NEU_ELIMINADO)  
+ *       - Neumáticos recuperados (NEU_RECUPERADO)
+ *       Cada registro incluye un campo ORIGEN_ESTADO para identificar su estado actual.
+ *     tags: [Neumáticos]
+ *     responses:
+ *       200:
+ *         description: Lista completa de neumáticos con todos los estados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   CODIGO:
+ *                     type: string
+ *                     example: "1000001"
+ *                   MARCA:
+ *                     type: string
+ *                     example: "PIRELLI"
+ *                   ORIGEN_ESTADO:
+ *                     type: string
+ *                     enum: [OPERATIVO, BAJA_DEFINITIVA, RECUPERADO]
+ *                     example: "OPERATIVO"
+ *       401:
+ *         description: No autenticado
+ *       500:
+ *         description: Error del servidor
+ */
+router.get('/todos', poNeumaticoController.getTodosNeumaticos);
+
+/**
+ * @swagger
+ * /api/po-neumaticos/baja-definitiva/cantidad:
+ *   get:
+ *     summary: Obtener cantidad de neumáticos en baja definitiva
+ *     description: Cuenta los neumáticos que están en estado de baja definitiva según el perfil del usuario
+ *     tags: [Neumáticos]
+ *     responses:
+ *       200:
+ *         description: Cantidad de neumáticos en baja definitiva
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cantidad:
+ *                   type: integer
+ *                   example: 5
+ *       401:
+ *         description: No autenticado
+ *       500:
+ *         description: Error del servidor
+ */
+router.get('/baja-definitiva/cantidad', poNeumaticoController.contarNeumaticosBajaDefinitiva);
+
+/**
+ * @swagger
+ * /api/po-neumaticos/recuperados/cantidad:
+ *   get:
+ *     summary: Obtener cantidad de neumáticos recuperados
+ *     description: Cuenta los neumáticos que están en estado recuperado según el perfil del usuario
+ *     tags: [Neumáticos]
+ *     responses:
+ *       200:
+ *         description: Cantidad de neumáticos recuperados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cantidad:
+ *                   type: integer
+ *                   example: 3
+ *       401:
+ *         description: No autenticado
+ *       500:
+ *         description: Error del servidor
+ */
+router.get('/recuperados/cantidad', poNeumaticoController.contarNeumaticoRecuperados);
+
+/**
+ * @swagger
+ * /api/po-neumaticos/baja-definitiva:
+ *   get:
+ *     summary: Obtener neumáticos en baja definitiva
+ *     description: Retorna todos los neumáticos que están en estado de baja definitiva según el perfil del usuario
+ *     tags: [Neumáticos]
+ *     responses:
+ *       200:
+ *         description: Lista de neumáticos en baja definitiva
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   CODIGO:
+ *                     type: string
+ *                     example: "1000001"
+ *                   MARCA:
+ *                     type: string
+ *                     example: "PIRELLI"
+ *                   ORIGEN_ESTADO:
+ *                     type: string
+ *                     example: "BAJA_DEFINITIVA"
+ *       401:
+ *         description: No autenticado
+ *       500:
+ *         description: Error del servidor
+ */
+router.get('/baja-definitiva', poNeumaticoController.getNeumaticosBajaDefinitiva);
+
+/**
+ * @swagger
+ * /api/po-neumaticos/recuperados:
+ *   get:
+ *     summary: Obtener neumáticos recuperados
+ *     description: Retorna todos los neumáticos que están en estado recuperado según el perfil del usuario
+ *     tags: [Neumáticos]
+ *     responses:
+ *       200:
+ *         description: Lista de neumáticos recuperados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   CODIGO:
+ *                     type: string
+ *                     example: "1000001"
+ *                   MARCA:
+ *                     type: string
+ *                     example: "PIRELLI"
+ *                   ORIGEN_ESTADO:
+ *                     type: string
+ *                     example: "RECUPERADO"
+ *       401:
+ *         description: No autenticado
+ *       500:
+ *         description: Error del servidor
+ */
+router.get('/recuperados', poNeumaticoController.getNeumaticoRecuperados);
+
 module.exports = router;

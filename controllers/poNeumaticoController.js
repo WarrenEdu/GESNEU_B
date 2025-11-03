@@ -10,7 +10,8 @@ const getPoNeumaticos = async (req, res) => {
         const usuario = req.session.user?.usuario;
         const perfiles = req.session.user?.perfiles?.map(p => p.codigo) || [];
 
-        let query = 'SELECT * FROM SPEED400AT.PO_NEUMATICO';
+        // Usar la vista unificada que incluye todos los estados de neumáticos
+        let query = 'SELECT * FROM SPEED400AT.VW_NEUMATICOS_UNIFICADOS';
         let params = [];
 
         // Si el usuario NO tiene perfil 005 (OPERACIONES), filtra por USUARIO_SUPER
@@ -19,20 +20,42 @@ const getPoNeumaticos = async (req, res) => {
             params.push(usuario);
         }
 
+        // Ordenar por código
+        query += ' ORDER BY CODIGO';
+
+        console.log('🔍 Consultando padrón desde vista unificada:', query);
+
         const result = await db.query(query, params);
 
         // Normalización de los datos
         const datosNormalizados = result.map((neumatico) => ({
             ...neumatico,
-            CODIGO: neumatico.CODIGO ? String(neumatico.CODIGO) : '', // Asegurar que CODIGO sea una cadena
-            MARCA: neumatico.MARCA || '', // Asegurar que MARCA no sea nulo
-            DISEÑO: neumatico.DISEÑO || '', // Asegurar que DISEÑO no sea nulo
-            REMANENTE: neumatico.REMANENTE || '', // Asegurar que REMANENTE no sea nulo
-            MEDIDA: neumatico.MEDIDA || '', // Asegurar que MEDIDA no sea nulo
-            FECHA_FABRICACION_COD: neumatico.FECHA_FABRICACION_COD || '', // Asegurar que FECHA no sea nulo
-            ESTADO: neumatico.ESTADO || '', // Asegurar que ESTADO no sea nulo
-            PROYECTO: neumatico.PROYECTO || '', // Asegurar que PROYECTO no sea nulo
+            CODIGO: neumatico.CODIGO ? String(neumatico.CODIGO) : '',
+            MARCA: neumatico.MARCA || '',
+            MEDIDA: neumatico.MEDIDA || '',
+            DISEÑO: neumatico.DISEÑO || '',
+            REMANENTE: neumatico.REMANENTE || '',
+            PR: neumatico.PR || '',
+            CARGA: neumatico.CARGA || '',
+            VELOCIDAD: neumatico.VELOCIDAD || '',
+            FECHA_FABRICACION_COD: neumatico.FECHA_FABRICACION_COD || '',
+            RQ: neumatico.RQ || '',
+            OC: neumatico.OC || '',
+            PROYECTO: neumatico.PROYECTO || '',
+            COSTO: neumatico.COSTO || 0,
+            PROVEEDOR: neumatico.PROVEEDOR || '',
+            FECHA_REGISTRO: neumatico.FECHA_REGISTRO || '',
+            FECHA_COMPRA: neumatico.FECHA_COMPRA || '',
+            USUARIO_SUPER: neumatico.USUARIO_SUPER || '',
+            TIPO_MOVIMIENTO: neumatico.TIPO_MOVIMIENTO || '',
+            PRESION_AIRE: neumatico.PRESION_AIRE || null,
+            TORQUE_APLICADO: neumatico.TORQUE_APLICADO || null,
+            ESTADO: neumatico.ESTADO || '',
+            KILOMETRO: neumatico.KILOMETRO || null,
+            ESTADO_NEUMATICO: neumatico.ESTADO_NEUMATICO || 'ACTIVO'
         }));
+
+        console.log(`✅ Padrón obtenido: ${datosNormalizados.length} neumáticos (incluyendo activos, baja definitiva y recuperados)`);
 
         res.json(datosNormalizados);
     } catch (error) {
@@ -181,7 +204,7 @@ const contarNeumaticos = async (req, res) => {
         const usuario = req.session.user?.usuario;
         const perfiles = req.session.user?.perfiles?.map(p => p.codigo) || [];
 
-        let query = 'SELECT COUNT(*) AS cantidad FROM SPEED400AT.PO_NEUMATICO';
+        let query = 'SELECT COUNT(*) AS cantidad FROM SPEED400AT.VW_NEUMATICOS_UNIFICADOS';
         let params = [];
 
         // Si NO es OPERACIONES (005), filtra por USUARIO_SUPER
@@ -260,6 +283,256 @@ const contarNeumaticosDisponibles = async (req, res) => {
     }
 };
 
+// NUEVAS FUNCIONES PARA VISIBILIDAD DE ESTADOS
+
+const getTodosNeumaticos = async (req, res) => {
+    // Validar sesión y usuario
+    if (!req.session.user || !req.session.user.usuario) {
+        return res.status(401).json({ mensaje: 'No autenticado' });
+    }
+    try {
+        const usuario = req.session.user?.usuario;
+        const perfiles = req.session.user?.perfiles?.map(p => p.codigo) || [];
+
+        // Usar la vista unificada en lugar de UNION
+        let query = 'SELECT * FROM SPEED400AT.VW_NEUMATICOS_UNIFICADOS';
+        let params = [];
+
+        // Si NO es OPERACIONES (005), filtra por USUARIO_SUPER
+        if (!perfiles.includes('005')) {
+            query += ' WHERE USUARIO_SUPER = ?';
+            params.push(usuario);
+        }
+
+        query += ' ORDER BY CODIGO';
+
+        console.log('🔍 Ejecutando consulta desde vista unificada:', query);
+
+        const result = await db.query(query, params);
+
+        // Normalización de los datos
+        const datosNormalizados = result.map((neumatico) => ({
+            ...neumatico,
+            CODIGO: neumatico.CODIGO ? String(neumatico.CODIGO) : '',
+            MARCA: neumatico.MARCA || '',
+            MEDIDA: neumatico.MEDIDA || '',
+            DISEÑO: neumatico.DISEÑO || '',
+            REMANENTE: neumatico.REMANENTE || '',
+            PR: neumatico.PR || '',
+            CARGA: neumatico.CARGA || '',
+            VELOCIDAD: neumatico.VELOCIDAD || '',
+            FECHA_FABRICACION_COD: neumatico.FECHA_FABRICACION_COD || '',
+            RQ: neumatico.RQ || '',
+            OC: neumatico.OC || '',
+            PROYECTO: neumatico.PROYECTO || '',
+            COSTO: neumatico.COSTO || 0,
+            PROVEEDOR: neumatico.PROVEEDOR || '',
+            FECHA_REGISTRO: neumatico.FECHA_REGISTRO || '',
+            FECHA_COMPRA: neumatico.FECHA_COMPRA || '',
+            USUARIO_SUPER: neumatico.USUARIO_SUPER || '',
+            TIPO_MOVIMIENTO: neumatico.TIPO_MOVIMIENTO || '',
+            PRESION_AIRE: neumatico.PRESION_AIRE || null,
+            TORQUE_APLICADO: neumatico.TORQUE_APLICADO || null,
+            ESTADO: neumatico.ESTADO || '',
+            KILOMETRO: neumatico.KILOMETRO || null,
+            ESTADO_NEUMATICO: neumatico.ESTADO_NEUMATICO || 'ACTIVO'
+        }));
+
+        // Calcular estadísticas por estado
+        const estadisticas = {
+            activos: datosNormalizados.filter(n => n.ESTADO_NEUMATICO === 'ACTIVO').length,
+            baja_definitiva: datosNormalizados.filter(n => n.ESTADO_NEUMATICO === 'BAJA_DEFINITIVA').length,
+            recuperados: datosNormalizados.filter(n => n.ESTADO_NEUMATICO === 'RECUPERADO').length,
+            total: datosNormalizados.length
+        };
+
+        res.json({
+            mensaje: 'Neumáticos obtenidos exitosamente',
+            data: datosNormalizados,
+            estadisticas
+        });
+
+    } catch (error) {
+        console.error('❌ Error al obtener todos los neumáticos:', error);
+        res.status(500).json({ 
+            mensaje: 'Error al obtener los neumáticos',
+            error: error.message 
+        });
+    }
+};
+
+const contarNeumaticosBajaDefinitiva = async (req, res) => {
+    // Validar sesión y usuario
+    if (!req.session.user || !req.session.user.usuario) {
+        return res.status(401).json({ mensaje: 'No autenticado' });
+    }
+    try {
+        const usuario = req.session.user?.usuario;
+        const perfiles = req.session.user?.perfiles?.map(p => p.codigo) || [];
+
+        let query = `SELECT COUNT(*) AS cantidad FROM SPEED400AT.VW_NEUMATICOS_UNIFICADOS 
+                     WHERE ESTADO_NEUMATICO = 'BAJA_DEFINITIVA'`;
+        let params = [];
+
+        // Si NO es OPERACIONES (005), filtra por USUARIO_SUPER
+        if (!perfiles.includes('005')) {
+            query += ' AND USUARIO_SUPER = ?';
+            params.push(usuario);
+        }
+
+        const result = await db.query(query, params);
+        const cantidad = Array.isArray(result) && result.length > 0
+            ? (result[0].cantidad || result[0].CANTIDAD)
+            : 0;
+        res.json({ cantidad });
+    } catch (error) {
+        console.error('Error al contar neumáticos en baja definitiva:', error);
+        res.status(500).json({ error: 'Error al contar neumáticos en baja definitiva' });
+    }
+};
+
+const contarNeumaticoRecuperados = async (req, res) => {
+    // Validar sesión y usuario
+    if (!req.session.user || !req.session.user.usuario) {
+        return res.status(401).json({ mensaje: 'No autenticado' });
+    }
+    try {
+        const usuario = req.session.user?.usuario;
+        const perfiles = req.session.user?.perfiles?.map(p => p.codigo) || [];
+
+        let query = `SELECT COUNT(*) AS cantidad FROM SPEED400AT.VW_NEUMATICOS_UNIFICADOS 
+                     WHERE ESTADO_NEUMATICO = 'RECUPERADO'`;
+        let params = [];
+
+        // Si NO es OPERACIONES (005), filtra por USUARIO_SUPER
+        if (!perfiles.includes('005')) {
+            query += ' AND USUARIO_SUPER = ?';
+            params.push(usuario);
+        }
+
+        const result = await db.query(query, params);
+        const cantidad = Array.isArray(result) && result.length > 0
+            ? (result[0].cantidad || result[0].CANTIDAD)
+            : 0;
+        res.json({ cantidad });
+    } catch (error) {
+        console.error('Error al contar neumáticos recuperados:', error);
+        res.status(500).json({ error: 'Error al contar neumáticos recuperados' });
+    }
+};
+
+const getNeumaticosBajaDefinitiva = async (req, res) => {
+    // Validar sesión y usuario
+    if (!req.session.user || !req.session.user.usuario) {
+        return res.status(401).json({ mensaje: 'No autenticado' });
+    }
+    try {
+        const usuario = req.session.user?.usuario;
+        const perfiles = req.session.user?.perfiles?.map(p => p.codigo) || [];
+
+        let query = `SELECT * FROM SPEED400AT.VW_NEUMATICOS_UNIFICADOS 
+                     WHERE ESTADO_NEUMATICO = 'BAJA_DEFINITIVA'`;
+        let params = [];
+
+        // Si NO es OPERACIONES (005), filtra por USUARIO_SUPER
+        if (!perfiles.includes('005')) {
+            query += ' AND USUARIO_SUPER = ?';
+            params.push(usuario);
+        }
+
+        const result = await db.query(query, params);
+
+        // Normalización de los datos
+        const datosNormalizados = result.map((neumatico) => ({
+            ...neumatico,
+            CODIGO: neumatico.CODIGO ? String(neumatico.CODIGO) : '',
+            MARCA: neumatico.MARCA || '',
+            MEDIDA: neumatico.MEDIDA || '',
+            DISEÑO: neumatico.DISEÑO || '',
+            REMANENTE: neumatico.REMANENTE || '',
+            PR: neumatico.PR || '',
+            CARGA: neumatico.CARGA || '',
+            VELOCIDAD: neumatico.VELOCIDAD || '',
+            FECHA_FABRICACION_COD: neumatico.FECHA_FABRICACION_COD || '',
+            RQ: neumatico.RQ || '',
+            OC: neumatico.OC || '',
+            PROYECTO: neumatico.PROYECTO || '',
+            COSTO: neumatico.COSTO || 0,
+            PROVEEDOR: neumatico.PROVEEDOR || '',
+            FECHA_REGISTRO: neumatico.FECHA_REGISTRO || '',
+            FECHA_COMPRA: neumatico.FECHA_COMPRA || '',
+            USUARIO_SUPER: neumatico.USUARIO_SUPER || '',
+            TIPO_MOVIMIENTO: neumatico.TIPO_MOVIMIENTO || '',
+            PRESION_AIRE: neumatico.PRESION_AIRE || null,
+            TORQUE_APLICADO: neumatico.TORQUE_APLICADO || null,
+            ESTADO: neumatico.ESTADO || '',
+            KILOMETRO: neumatico.KILOMETRO || null,
+            ESTADO_NEUMATICO: neumatico.ESTADO_NEUMATICO || 'BAJA_DEFINITIVA'
+        }));
+
+        res.json(datosNormalizados);
+    } catch (error) {
+        console.error('Error al obtener neumáticos en baja definitiva:', error);
+        res.status(500).json({ mensaje: 'Error al obtener neumáticos en baja definitiva' });
+    }
+};
+
+const getNeumaticoRecuperados = async (req, res) => {
+    // Validar sesión y usuario
+    if (!req.session.user || !req.session.user.usuario) {
+        return res.status(401).json({ mensaje: 'No autenticado' });
+    }
+    try {
+        const usuario = req.session.user?.usuario;
+        const perfiles = req.session.user?.perfiles?.map(p => p.codigo) || [];
+
+        let query = `SELECT * FROM SPEED400AT.VW_NEUMATICOS_UNIFICADOS 
+                     WHERE ESTADO_NEUMATICO = 'RECUPERADO'`;
+        let params = [];
+
+        // Si NO es OPERACIONES (005), filtra por USUARIO_SUPER
+        if (!perfiles.includes('005')) {
+            query += ' AND USUARIO_SUPER = ?';
+            params.push(usuario);
+        }
+
+        const result = await db.query(query, params);
+
+        // Normalización de los datos
+        const datosNormalizados = result.map((neumatico) => ({
+            ...neumatico,
+            CODIGO: neumatico.CODIGO ? String(neumatico.CODIGO) : '',
+            MARCA: neumatico.MARCA || '',
+            MEDIDA: neumatico.MEDIDA || '',
+            DISEÑO: neumatico.DISEÑO || '',
+            REMANENTE: neumatico.REMANENTE || '',
+            PR: neumatico.PR || '',
+            CARGA: neumatico.CARGA || '',
+            VELOCIDAD: neumatico.VELOCIDAD || '',
+            FECHA_FABRICACION_COD: neumatico.FECHA_FABRICACION_COD || '',
+            RQ: neumatico.RQ || '',
+            OC: neumatico.OC || '',
+            PROYECTO: neumatico.PROYECTO || '',
+            COSTO: neumatico.COSTO || 0,
+            PROVEEDOR: neumatico.PROVEEDOR || '',
+            FECHA_REGISTRO: neumatico.FECHA_REGISTRO || '',
+            FECHA_COMPRA: neumatico.FECHA_COMPRA || '',
+            USUARIO_SUPER: neumatico.USUARIO_SUPER || '',
+            TIPO_MOVIMIENTO: neumatico.TIPO_MOVIMIENTO || '',
+            PRESION_AIRE: neumatico.PRESION_AIRE || null,
+            TORQUE_APLICADO: neumatico.TORQUE_APLICADO || null,
+            ESTADO: neumatico.ESTADO || '',
+            KILOMETRO: neumatico.KILOMETRO || null,
+            ESTADO_NEUMATICO: neumatico.ESTADO_NEUMATICO || 'RECUPERADO'
+        }));
+
+        res.json(datosNormalizados);
+    } catch (error) {
+        console.error('Error al obtener neumáticos recuperados:', error);
+        res.status(500).json({ mensaje: 'Error al obtener neumáticos recuperados' });
+    }
+};
+
 
 
 module.exports = {
@@ -269,5 +542,11 @@ module.exports = {
     contarProyectosNeumatico,
     contarNeumaticos,
     contarNeumaticosAsignados,
-    contarNeumaticosDisponibles
+    contarNeumaticosDisponibles,
+    // Nuevas funciones para visibilidad de estados
+    getTodosNeumaticos,
+    contarNeumaticosBajaDefinitiva,
+    contarNeumaticoRecuperados,
+    getNeumaticosBajaDefinitiva,
+    getNeumaticoRecuperados
 };
