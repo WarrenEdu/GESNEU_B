@@ -13,13 +13,12 @@ const db = {
 
     connect: async () => {
         try {
-            // Usar DSN de IBM i Access
-            const connStr = `DSN=AS400_SYSTEM`;
-            
-            console.log(`🔄 Intentando conectar a AS400/iSeries usando DSN: AS400_SYSTEM`);
-            
-            db.connection = await odbc.connect(connStr);
-            console.log('✅ Conectado a AS400/iSeries vía IBM i Access ODBC correctamente');
+            //const dsn = process.env.DB_DSN || 'AS400_SYSTEM';
+            const connStr = `DRIVER={IBM i Access ODBC Driver};SYSTEM=192.168.5.5;UID=SYPSA;PWD=cotito$`;
+        
+        console.log(`🔄 Conectando directamente a 192.168.5.5`);
+        db.connection = await odbc.connect(connStr);
+        console.log('✅ Conectado correctamente');
         } catch (err) {
             console.error('❌ Error de conexión IBM i Access:', err);
             console.log('⚠️ Continuando sin conexión a la base de datos...');

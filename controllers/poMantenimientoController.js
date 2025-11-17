@@ -130,6 +130,24 @@ const registrarReubicacionNeumatico = async (req, res) => {
                 ];
                 //console.log('valoresMovimiento:', valoresMovimiento);
                 await db.query(queryMovimiento, valoresMovimiento);
+
+                // ACTUALIZAR LA TABLA NEU_ASIGNADO para reflejar la nueva posición
+                const queryUpdateAsignado = `
+                    UPDATE SPEED400AT.NEU_ASIGNADO 
+                    SET POSICION_NEU = ?, 
+                        FECHA_MOVIMIENTO = ?
+                    WHERE CODIGO = ? AND PLACA = ?
+                `;
+                const valoresUpdateAsignado = [
+                    datos.POSICION_FIN, // Nueva posición
+                    formatTimestamp(datos.FECHA_MOVIMIENTO), // Fecha del movimiento
+                    datos.CODIGO, // Código del neumático
+                    datos.PLACA // Placa del vehículo
+                ];
+                
+                console.log('Actualizando NEU_ASIGNADO:', valoresUpdateAsignado);
+                await db.query(queryUpdateAsignado, valoresUpdateAsignado);
+
             } catch (e) {
                 // Mostrar el error exacto de la base de datos en consola para depuración
                 console.error('Error SQL en registro individual:', e);
@@ -244,6 +262,20 @@ const registrarDesasignacionNeumatico = async (req, res) => {
                     datos.ID_ASIGNADO || null
                 ];
                 await db.query(queryMovimiento, valoresMovimiento);
+
+                // ELIMINAR DE LA TABLA NEU_ASIGNADO cuando se desasigna
+                const queryDeleteAsignado = `
+                    DELETE FROM SPEED400AT.NEU_ASIGNADO 
+                    WHERE CODIGO = ? AND PLACA = ?
+                `;
+                const valoresDeleteAsignado = [
+                    datos.CODIGO, // Código del neumático
+                    datos.PLACA // Placa del vehículo
+                ];
+                
+                console.log('Eliminando de NEU_ASIGNADO:', valoresDeleteAsignado);
+                await db.query(queryDeleteAsignado, valoresDeleteAsignado);
+
                 // --- FIN NUEVO ---
             } catch (e) {
                 console.error('Error SQL al insertar en', tabla, ':', e);
